@@ -20,9 +20,6 @@ This setup works on a VM, physical server, or NAS.
 
 ## 🏗️ Architecture Diagram
 
-```
-
-```
  ┌──────────────┐
  │    macOS     │
  │  (Client)    │
@@ -44,9 +41,6 @@ This setup works on a VM, physical server, or NAS.
  │  └───────────┘ │
  │                 │
  └─────────────────┘
-```
-
-````
 
 ---
 
