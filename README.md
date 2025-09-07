@@ -1,8 +1,3 @@
-Great idea 👍 — here’s the **updated README.md** with a neat **ASCII architecture diagram** included. It visually explains how macOS connects to your backup server.
-
----
-
-```markdown
 # 🖥️ macOS Backup Server
 
 A complete guide to setting up a **macOS backup server** using:
