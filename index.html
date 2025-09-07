@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backup Server Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .prose a { color: #2563EB; text-decoration: underline; }
+        .prose code { background-color: #f3f4f6; padding: 2px 4px; border-radius: 4px; }
+        .prose pre { padding: 1em; border-radius: 0.5em; background-color: #f0f4f8; overflow-x: auto; }
+    </style>
+</head>
+<body class="bg-gray-100 antialiased">
+    <nav class="bg-white shadow-lg p-4 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="text-xl font-bold text-gray-800">Admin Dashboard</div>
+            <div class="flex space-x-4">
+                <button id="nav-users" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors">User Management</button>
+                <button id="nav-backup" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition-colors">Backup Files</button>
+                <button id="nav-docs" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition-colors">Documentation</button>
+                <a href="/logout" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition-colors">Log Out</a>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container mx-auto mt-8 p-4">
+        <div id="users-section" class="bg-white p-8 rounded-xl shadow-lg">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">User Management</h1>
+            <p class="text-gray-600 mb-6">Manage backup user accounts on the server. You can add or remove users here. Note that all file data for a deleted user will be permanently removed.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="col-span-1">
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700">Create New Backup User</h2>
+                        <form id="create-user-form" class="space-y-4">
+                            <div>
+                                <label for="create-username" class="block text-sm font-medium text-gray-700">Username</label>
+                                <input type="text" id="create-username" name="username" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            </div>
+                            <div>
+                                <label for="create-password" class="block text-sm font-medium text-gray-700">Password</label>
+                                <input type="password" id="create-password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            </div>
+                            <button type="submit" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:bg-green-700 transition-colors">Create User</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-span-1">
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700">Delete Backup User</h2>
+                        <form id="delete-user-form" class="space-y-4">
+                            <div>
+                                <label for="delete-username" class="block text-sm font-medium text-gray-700">Username</label>
+                                <input type="text" id="delete-username" name="username" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            </div>
+                            <button type="submit" class="w-full bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:bg-red-700 transition-colors">Delete User</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-span-1">
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700">Current Users</h2>
+                        <ul id="user-list" class="space-y-2">
+                            <li class="text-gray-500">Loading users...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div id="user-management-status" class="mt-6 p-4 rounded-md text-sm font-medium text-center hidden"></div>
+        </div>
+
+        <div id="backup-section" class="bg-white p-8 rounded-xl shadow-lg hidden">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Backup Files Management</h1>
+            <p class="text-gray-600 mb-6">View, upload, and download files from the backup server. All files are stored in the shared Time Machine directory.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="col-span-1">
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700">Upload File</h2>
+                        <form id="upload-form" enctype="multipart/form-data" class="space-y-4">
+                            <div>
+                                <label for="file-upload" class="block text-sm font-medium text-gray-700">Choose file to upload</label>
+                                <input type="file" id="file-upload" name="file" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:bg-blue-700 transition-colors">Upload</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-span-1">
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700">Storage Status</h2>
+                        <pre id="storage-status" class="bg-gray-100 p-4 rounded-md text-sm text-gray-800">Loading...</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Current Backup Files</h2>
+                <div id="files-status" class="mt-4 p-4 rounded-md text-sm font-medium text-center hidden"></div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="file-list" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="3" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Loading files...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="docs-section" class="bg-white p-8 rounded-xl shadow-lg hidden">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Project Documentation and Setup Guide</h1>
+            <p class="text-gray-600 mb-6">This document provides a complete guide for setting up and operating the Mac Backup Server. It is designed for both the project owner and a new user. The web application can be accessed via `http://<VM_IP_ADDRESS>:5000` with the admin credentials: **admin / password**.</p>
+            <div class="prose max-w-none text-gray-600">
+                <h2>Phase 1: Server Setup (On a Virtual Machine)</h2>
+                <p>This section guides you through setting up the server environment on a virtual machine to host the backup service. You will use **Ubuntu Server**, which is lightweight and ideal for this task.</p>
+                <ol>
+                    <li><strong>Install Virtualization Software:</strong> Download and install a hypervisor like **VirtualBox** or **Parallels Lite** on your computer.</li>
+                    <li><strong>Install Ubuntu Server:</strong> Create a new VM and install **Ubuntu Server 22.04 LTS**.</li>
+                    <li><strong>Configure Network:</strong> In the VM settings, change the network adapter to **Bridged Adapter**. This is critical for allowing your Mac and the VM to communicate on the same network.</li>
+                    <li><strong>Find the VM's IP Address:</strong> After starting the VM, log in and run `ip a` in the terminal. Look for the address next to `inet` that is in a local range like `192.168.1.x`. This is the IP address you will use for all connections.</li>
+                    <li><strong>Set up SSH (Optional):</strong> For easier management, you can install the SSH server to control your VM from your main computer's terminal. Run `sudo apt install openssh-server` and then `sudo ufw allow ssh` to allow connections.</li>
+                </ol>
+
+                <h2>Phase 2: Project Backend and Services</h2>
+                <p>Now, you will install and configure the services that make the backup server functional.</p>
+                <ol>
+                    <li><strong>Install Samba:</strong> Samba provides the file-sharing service that macOS Time Machine uses. Run the following command: `sudo apt install samba`.</li>
+                    <li><strong>Install Python and Flask:</strong> The web dashboard is a Python application. Install Python and Flask with: `sudo apt install python3-pip python3-flask`.</li>
+                    <li><strong>Set Up File and User Permissions:</strong> Create a user for your web app and give it the necessary permissions to write files to the backup directory and run certain commands.
+                        <pre><code>sudo adduser backup_web_app<br>sudo mkdir -p /srv/backups/timemachine<br>sudo chown -R backup_web_app:backup_web_app /srv/backups/timemachine<br>sudo chmod -R 775 /srv/backups/timemachine</code></pre>
+                    </li>
+                    <li><strong>Configure `sudoers`:</strong> You must grant the web app user permission to run system commands without a password. Open the file with `sudo visudo` and add the following line at the end.
+                        <pre><code>backup_web_app ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /usr/sbin/passwd, /usr/bin/smbpasswd, /usr/bin/systemctl restart smbd, /usr/bin/df, /usr/bin/ls, /usr/sbin/deluser</code></pre>
+                    </li>
+                </ol>
+                
+                <h2>Phase 3: Deploying the Web Application</h2>
+                <p>This is where you deploy the web dashboard files to your server.</p>
+                <ol>
+                    <li><strong>Create Project Folders:</strong> Create the `templates` directory in the home folder of your web app user.
+                        <pre><code>mkdir ~/templates</code></pre>
+                    </li>
+                    <li><strong>Create `app.py` and `index.html`:</strong> Copy the provided `app.py` and `index.html` files and place them in the correct locations: `~/app.py` and `~/templates/index.html`.</li>
+                    <li><strong>Run the Application:</strong> Launch the web server by running the following command from the user's home directory.
+                        <pre><code>python3 app.py</code></pre>
+                    </li>
+                    <li><strong>Access the Dashboard:</strong> On your main computer, open a web browser and navigate to `http://<VM_IP_ADDRESS>:5000` to access the login page.</li>
+                </ol>
+
+                <h2>Phase 4: Using the Dashboard</h2>
+                <p>The dashboard provides a user-friendly interface for managing your server. All of the following functions can be tested from the web browser.</p>
+                <h3>User Management</h3>
+                <ul>
+                    <li><strong>Create a User:</strong> Use the form to create a new user. This will create a dedicated account for a Time Machine backup.</li>
+                    <li><strong>Delete a User:</strong> Use the form to delete a user. All of their backup data will be permanently removed from the server.</li>
+                </ul>
+                <h3>Backup Files</h3>
+                <ul>
+                    <li><strong>Upload Files:</strong> Use the upload form to transfer files from your computer to the server.</li>
+                    <li><strong>Download Files:</strong> Click on the name of any file in the file list to download it.</li>
+                </ul>
+
+                <h2>Phase 5: Connecting Your Mac to the Server</h2>
+                <p>The final step is to connect your Mac to the server you configured to perform backups.</p>
+                <ol>
+                    <li><strong>Connect in Finder:</strong> From your Mac's Finder, select **Go > Connect to Server...**. Enter `smb://<VM_IP_ADDRESS>`. </li>
+                    <li><strong>Log In:</strong> When prompted, enter the credentials of a user you created via the web dashboard.</li>
+                    <li><strong>Configure Time Machine:</strong> Go to **System Settings > General > Time Machine** and click **Add Backup Disk...**. Select the server and log in with your backup user's credentials to start the backup.</li>
+                </ol>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = {
+                'users-section': document.getElementById('users-section'),
+                'backup-section': document.getElementById('backup-section'),
+                'docs-section': document.getElementById('docs-section')
+            };
+
+            const navButtons = {
+                'nav-users': document.getElementById('nav-users'),
+                'nav-backup': document.getElementById('nav-backup'),
+                'nav-docs': document.getElementById('nav-docs')
+            };
+
+            function showSection(sectionId) {
+                for (const key in sections) {
+                    if (key === sectionId) {
+                        sections[key].classList.remove('hidden');
+                    } else {
+                        sections[key].classList.add('hidden');
+                    }
+                }
+            }
+
+            function updateNavButtons(activeButtonId) {
+                for (const key in navButtons) {
+                    navButtons[key].classList.remove('bg-blue-600', 'text-white');
+                    navButtons[key].classList.add('bg-gray-200', 'text-gray-700');
+                }
+                navButtons[activeButtonId].classList.remove('bg-gray-200', 'text-gray-700');
+                navButtons[activeButtonId].classList.add('bg-blue-600', 'text-white');
+            }
+
+            navButtons['nav-users'].addEventListener('click', () => {
+                showSection('users-section');
+                updateNavButtons('nav-users');
+                fetchUsers();
+            });
+
+            navButtons['nav-backup'].addEventListener('click', () => {
+                showSection('backup-section');
+                updateNavButtons('nav-backup');
+                fetchFiles();
+                fetchStorage();
+            });
+            
+            navButtons['nav-docs'].addEventListener('click', () => {
+                showSection('docs-section');
+                updateNavButtons('nav-docs');
+            });
+            
+            async function fetchUsers() {
+                const userList = document.getElementById('user-list');
+                userList.innerHTML = '<li class="text-gray-500">Loading users...</li>';
+                try {
+                    const response = await fetch('/users_data');
+                    const users = await response.json();
+                    if (response.ok) {
+                        userList.innerHTML = users.map(user => `<li class="text-gray-800">${user}</li>`).join('');
+                    } else {
+                        userList.innerHTML = `<li class="text-red-500">Error: ${users.error}</li>`;
+                    }
+                } catch (error) {
+                    userList.innerHTML = `<li class="text-red-500">Failed to load users.</li>`;
+                }
+            }
+            
+            async function fetchFiles() {
+                const fileList = document.getElementById('file-list');
+                fileList.innerHTML = `<tr><td colspan="3" class="px-6 py-4 text-sm text-gray-500">Loading files...</td></tr>`;
+                try {
+                    const response = await fetch('/files_data');
+                    const files = await response.json();
+                    if (response.ok) {
+                        if (files.length === 0) {
+                            fileList.innerHTML = `<tr><td colspan="3" class="px-6 py-4 text-sm text-gray-500">No backup files found.</td></tr>`;
+                        } else {
+                            fileList.innerHTML = files.map(file => `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 hover:text-blue-800"><a href="/download/${file.name}" class="hover:underline">${file.name}</a></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${file.size}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"></td>
+                                </tr>
+                            `).join('');
+                        }
+                    } else {
+                        fileList.innerHTML = `<tr><td colspan="3" class="px-6 py-4 text-sm text-red-500">Error: ${files.error}</td></tr>`;
+                    }
+                } catch (error) {
+                    fileList.innerHTML = `<tr><td colspan="3" class="px-6 py-4 text-sm text-red-500">Failed to load files.</td></tr>`;
+                }
+            }
+
+            async function fetchStorage() {
+                const storageStatus = document.getElementById('storage-status');
+                storageStatus.innerHTML = 'Loading...';
+                try {
+                    const response = await fetch('/files_data');
+                    const data = await response.text();
+                    // This is a simplified fetch, assumes a structured JSON
+                    // In a real app, you would have a dedicated endpoint for storage
+                    // For this demo, we'll just show a placeholder
+                    storageStatus.innerHTML = `Disk usage data would be here.`;
+                } catch (error) {
+                    storageStatus.innerHTML = `<span class="text-red-500">Failed to fetch storage info.</span>`;
+                }
+            }
+            
+            document.getElementById('create-user-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const username = form.elements['username'].value;
+                const password = form.elements['password'].value;
+                const statusDiv = document.getElementById('user-management-status');
+                statusDiv.classList.remove('hidden');
+                statusDiv.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+                statusDiv.classList.add('bg-gray-100', 'text-gray-800');
+                statusDiv.textContent = 'Creating user...';
+
+                try {
+                    const response = await fetch('/create_user', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        statusDiv.classList.remove('bg-gray-100', 'text-gray-800');
+                        statusDiv.classList.add('bg-green-100', 'text-green-800');
+                        statusDiv.textContent = result.message;
+                        form.reset();
+                        fetchUsers();
+                    } else {
+                        statusDiv.classList.remove('bg-gray-100', 'text-gray-800');
+                        statusDiv.classList.add('bg-red-100', 'text-red-800');
+                        statusDiv.textContent = `Error: ${result.error}`;
+                    }
+                } catch (error) {
+                    statusDiv.classList.remove('bg-gray-100', 'text-gray-800');
+                    statusDiv.classList.add('bg-red-100', 'text-red-800');
+                    statusDiv.textContent = `Error: Network or server issue.`;
+                }
+            });
+
+            document.getElementById('delete-user-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const username = form.elements['username'].value;
+                const statusDiv = document.getElementById('user-management-status');
+                statusDiv.classList.remove('hidden');
+                statusDiv.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+                statusDiv.classList.add('bg-gray-100', 'text-gray-800');
+                statusDiv.textContent = 'Deleting user...';
+
+                if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+                    statusDiv.textContent = 'Deletion cancelled.';
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/delete_user', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username })
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        statusDiv.classList.remove('bg-gray-100', 'text-gray-800');
+                        statusDiv.classList.add('bg-green-100', 'text-green-800');
+                        statusDiv.textContent = result.message;
+                        form.reset();
+                        fetchUsers();
+                    } else {
+                        statusDiv.classList.remove('bg-gray-100', 'text-gray-800');
+                        statusDiv.classList.add('bg-red-100', 'text-red-800');
+                        statusDiv.textContent = `Error: ${result.error}`;
+                    }
+                } catch (error) {
+                    statusDiv.classList.remove('bg-gray-100', 'text-gray-800');
+                    statusDiv.classList.add('bg-red-100', 'text-red-800');
+                    statusDiv.textContent = `Error: Network or server issue.`;
+                }
+            });
+
+            document.getElementById('upload-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const fileInput = form.elements['file'];
+                const file = fileInput.files[0];
+                const statusDiv = document.getElementById('files-status');
+                statusDiv.classList.remove('hidden');
+                statusDiv.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+                statusDiv.classList.add('bg-gray-100', 'text-gray-800');
+                statusDiv.textContent = 'Uploading file...';
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        statusDiv.classList.remove('bg-gray-100', 'text-gray-800');
+                        statusDiv.classList.add('bg-green-100', 'text-green-800');
+                        statusDiv.textContent = result.message;
+                        form.reset();
+                        fetchFiles();
+                    } else {
+                        statusDiv.classList.remove('bg-gray-100', 'text-gray-800');
+                        statusDiv.classList.add('bg-red-100', 'text-red-800');
+                        statusDiv.textContent = `Error: ${result.error}`;
+                    }
+                } catch (error) {
+                    statusDiv.classList.remove('bg-gray-100', 'text-gray-800');
+                    statusDiv.classList.add('bg-red-100', 'text-red-800');
+                    statusDiv.textContent = `Error: Network or server issue.`;
+                }
+            });
+            
+            fetchUsers();
+        });
+    </script>
+</body>
+</html>

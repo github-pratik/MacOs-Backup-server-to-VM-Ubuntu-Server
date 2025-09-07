@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Welcome to the Backup Server Dashboard</h1>
+    <p>You are logged in as an administrator. <a href="/logout">Log Out</a></p>
+
+    <hr>
+
+    <h2>Create New Backup User</h2>
+    <form method="post" action="{{ url_for('create_user') }}">
+        <label for="username">Username:</label><br>
+        <input type="text" id="username" name="username"><br>
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password"><br><br>
+        <input type="submit" value="Create User">
+    </form>
+
+    <hr>
+
+    <h2>Delete Backup User</h2>
+    <form method="post" action="{{ url_for('delete_user') }}">
+        <label for="delete_username">Username to Delete:</label><br>
+        <input type="text" id="delete_username" name="username"><br><br>
+        <input type="submit" value="Delete User">
+    </form>
+
+    <hr>
+
+    <h2>Server Storage Status</h2>
+    {% if storage_info %}
+    <pre>{{ storage_info }}</pre>
+    {% elif error %}
+    <p style="color:red;">Error: {{ error }}</p>
+    {% else %}
+    <p>Loading storage information...</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>Backup Files in /srv/backups/timemachine</h2>
+    {% if file_list %}
+    <pre>{{ file_list }}</pre>
+    {% elif error %}
+    <p style="color:red;">Error: {{ error }}</p>
+    {% else %}
+    <p>No backup files found yet.</p>
+    {% endif %}
+</body>
+</html>
